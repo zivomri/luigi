@@ -36,7 +36,7 @@ jobs:
     
     - name: Configure Python with JFrog
       run: |
-        jf pip-config --repo-resolve=poc-pypi-remote --repo-deploy=poc-pypi-local --project=poc
+        jf pip-config --repo-resolve=poc-pypi-remote --repo-deploy=poc-pypi-local 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
@@ -44,21 +44,21 @@ jobs:
     
     - name: Collect build environment
       run: |
-        jf rt build-collect-env $BUILD_NAME $BUILD_NUMBER  
+        jf rt build-collect-env $BUILD_NAME $BUILD_NUMBER --project=poc
     - name: Collect build artifacts
       run: |
-        jf rt upload "dist/*" pypi-local/ --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER
+        jf rt upload "dist/*" pypi-local/ --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER --project=poc
     - name: Collect VCS information
       run: |
-        jf rt build-add-git $BUILD_NAME $BUILD_NUMBER
+        jf rt build-add-git $BUILD_NAME $BUILD_NUMBER --project=poc
     
     - name: Publish build info to Artifactory
       run: |
-        jf rt build-publish $BUILD_NAME $BUILD_NUMBER
+        jf rt build-publish $BUILD_NAME $BUILD_NUMBER --project=poc
     
     - name: Xray Build Scan
       run: |
-        jf build-scan $BUILD_NAME $BUILD_NUMBER --format=table --fail=false
+        jf build-scan $BUILD_NAME $BUILD_NUMBER --format=table --fail=false --project=poc
       continue-on-error: true
     
     - name: Display build information
