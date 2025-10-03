@@ -52,7 +52,7 @@ jobs:
         jf rt build-collect-env $BUILD_NAME $BUILD_NUMBER --project=poc
     - name: Collect build artifacts
       run: |
-        jf rt upload "dist/*" pypi-local/ --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER --project=poc
+        jf rt upload "dist/*" poc-pypi-local/ --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER --project=poc
     - name: Collect VCS information
       run: |
         jf pip install -e . --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER
