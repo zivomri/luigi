@@ -41,7 +41,12 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         jf pip install -e . --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER
-    
+
+    - name: Build Python package
+      run: |
+        python -m pip install build
+        python -m build
+
     - name: Collect build environment
       run: |
         jf rt build-collect-env $BUILD_NAME $BUILD_NUMBER --project=poc
@@ -50,6 +55,7 @@ jobs:
         jf rt upload "dist/*" pypi-local/ --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER --project=poc
     - name: Collect VCS information
       run: |
+        jf pip install -e . --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER
         jf rt build-add-git $BUILD_NAME $BUILD_NUMBER --project=poc
     
     - name: Publish build info to Artifactory
