@@ -1,0 +1,112 @@
+name: Build Info with JFrog Integration
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  BUILD_NAME: luigi-build
+  BUILD_NUMBER: ${{ github.run_number }}
+
+jobs:
+  build-info:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Set up JFrog CLI
+      uses: jfrog/setup-jfrog-cli@v4
+      with:
+        version: 'latest'
+      env:
+        JF_URL: ${{ secrets.JF_URL }}
+        # Basic authentication credentials
+        JF_USER: ${{ secrets.JF_USER }}
+        JF_PASSWORD: ${{ secrets.JF_PASSWORD }}
+        JF_GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Configure Python with JFrog
+      run: |
+        jf pypi-config --repo-resolve=poc-pypi-remote --repo-deploy=poc-pypi-local
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        jf pip install -e . --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER
+    
+    - name: Build Python package
+      run: |
+        python -m pip install build wheel setuptools
+        python -m build
+    
+    - name: Collect build environment
+      run: |
+        jf rt build-collect-env $BUILD_NAME $BUILD_NUMBER
+    
+    - name: Collect build artifacts
+      run: |
+        jf rt upload "dist/*" pypi-local/ --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER
+    
+    - name: Collect VCS information
+      run: |
+        jf rt build-add-git $BUILD_NAME $BUILD_NUMBER
+    
+    - name: Publish build info to Artifactory
+      run: |
+        jf rt build-publish $BUILD_NAME $BUILD_NUMBER
+    
+    - name: Xray Build Scan
+      run: |
+        jf build-scan $BUILD_NAME $BUILD_NUMBER --format=table --fail=false
+      continue-on-error: true
+    
+    - name: Display build information
+      run: |
+        echo "### Build Information"
+        echo "- **Build Name:** $BUILD_NAME"
+        echo "- **Build Number:** $BUILD_NUMBER"
+        echo "- **Timestamp:** $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        echo "- **Commit SHA:** ${{ github.sha }}"
+        echo "- **Short SHA:** ${GITHUB_SHA:0:7}"
+        echo "- **Branch:** ${{ github.ref_name }}"
+        echo "- **Repository:** ${{ github.repository }}"
+        echo "- **Actor:** ${{ github.actor }}"
+    
+    - name: Create build info summary
+      run: |
+        mkdir -p build-artifacts
+        cat > build-artifacts/build-summary.json << EOF
+        {
+          "build_name": "$BUILD_NAME",
+          "build_number": "$BUILD_NUMBER",
+          "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+          "commit_sha": "${{ github.sha }}",
+          "commit_short_sha": "${GITHUB_SHA:0:7}",
+          "branch_name": "${{ github.ref_name }}",
+          "repository": "${{ github.repository }}",
+          "actor": "${{ github.actor }}",
+          "workflow_run_id": "${{ github.run_id }}",
+          "artifactory_url": "${{ secrets.JF_URL }}"
+        }
+        EOF
+    
+    
+    - name: Upload Python packages
+      uses: actions/upload-artifact@v4
+      with:
+        name: python-packages
+        path: dist/
+        retention-days: 30
+      if: always()
