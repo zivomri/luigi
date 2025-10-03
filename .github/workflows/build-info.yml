@@ -36,26 +36,18 @@ jobs:
     
     - name: Configure Python with JFrog
       run: |
-        jf pypi-config --repo-resolve=poc-pypi-remote --repo-deploy=poc-pypi-local
-    
+        jf pip-config --repo-resolve=poc-pypi-remote --repo-deploy=poc-pypi-local --project=poc
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         jf pip install -e . --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER
     
-    - name: Build Python package
-      run: |
-        python -m pip install build wheel setuptools
-        python -m build
-    
     - name: Collect build environment
       run: |
-        jf rt build-collect-env $BUILD_NAME $BUILD_NUMBER
-    
+        jf rt build-collect-env $BUILD_NAME $BUILD_NUMBER  
     - name: Collect build artifacts
       run: |
         jf rt upload "dist/*" pypi-local/ --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER
-    
     - name: Collect VCS information
       run: |
         jf rt build-add-git $BUILD_NAME $BUILD_NUMBER
