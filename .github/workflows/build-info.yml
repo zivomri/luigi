@@ -20,12 +20,10 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.9'
-    
+        python-version: '3.9'    
     - name: Set up JFrog CLI
       uses: jfrog/setup-jfrog-cli@v4
       with:
@@ -33,19 +31,14 @@ jobs:
       env:
         JF_URL: ${{ secrets.JF_URL }}
         JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
-    
+
     - name: Configure Python with JFrog
       run: |
         jf pip-config --repo-resolve=poc-pypi-remote --repo-deploy=poc-pypi-local 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        jf pip install -e . --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER
-
-    - name: Build Python package
-      run: |
-        python -m pip install build
-        python -m build
+        jf pip install -e . --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER --project=poc
 
     - name: Collect build environment
       run: |
@@ -57,16 +50,13 @@ jobs:
       run: |
         jf pip install -e . --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER
         jf rt build-add-git $BUILD_NAME $BUILD_NUMBER --project=poc
-    
     - name: Publish build info to Artifactory
       run: |
         jf rt build-publish $BUILD_NAME $BUILD_NUMBER --project=poc
-    
     - name: Xray Build Scan
       run: |
         jf build-scan $BUILD_NAME $BUILD_NUMBER --format=table --fail=false --project=poc
       continue-on-error: true
-    
     - name: Display build information
       run: |
         echo "### Build Information"
